@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BK Fun Wheel</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+        .logo-container {
+            position: absolute;
+            top: 20px;     /* Jarak dari atas */
+            right: 100px;   /* Jarak dari kanan */
+            z-index: 100;  /* Memastikan logo berada di atas elemen lain */
+            display: flex;       /* Memaksa elemen di dalamnya berdampingan */
+            align-items: center; /* Memastikan kedua logo sejajar di tengah secara vertikal */
+            gap: 15px;           /* Jarak antara logo kiri dan kanan */
+        }
+
+        .logo-container img {
+            max-height: 70px; /* Ukuran maksimal tinggi logo */
+            width: auto;       /* Lebar menyesuaikan proposi tinggi */
+            
+        }
+        @media (max-width: 600px) {
+            .logo-container {
+                position: relative; /* Batal jadi absolut */
+                top: auto;
+                right: auto;
+                margin-top: 20px;
+                display: flex;
+                justify-content: center; /* Posisikan logo di tengah */
+                max-height: 45px; /* Mengurangi tinggi logo khusus di HP */
+                width: 100%;
+            }
+            h1 {
+                margin-top: 15px; /* Sesuaikan jarak judul dengan logo yang ada di atasnya */
+            }
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+            text-align: center;
+            margin-top:  20px;
+        }
+       
+
+        p.subtitle {
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Container Roda */
+        .wheel-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin-bottom: 30px;
+        }
+
+        /* Roda Canvas */
+        #wheelCanvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            transition: transform 4s cubic-bezier(0.25, 0.1, 0.25, 1);
+            border: 5px solid #fff;
+            box-sizing: border-box;
+        }
+
+        /* Penunjuk (Pointer) */
+        .pointer {
+            position: absolute;
+            top: 50%;
+            right: -20px;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 15px solid transparent;
+            border-bottom: 15px solid transparent;
+            border-right: 25px solid #e74c3c;
+            z-index: 10;
+            filter: drop-shadow(-2px 2px 2px rgba(0,0,0,0.2));
+        }
+
+        /* Tombol Spin */
+        .btn-spin {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        .btn-spin:hover {
+            background-color: #c0392b;
+            transform: scale(1.05);
+        }
+
+        .btn-spin:active {
+            transform: scale(0.95);
+        }
+
+        .btn-spin:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Kotak Hasil (Popup/Card) */
+        .result-card {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            margin-top: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+            pointer-events: none;
+        }
+
+        .result-card.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .question-text {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2c3e50;
+            line-height: 1.5;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+    <div class="logo-container">
+    <img src="logo_bkpi.png">
+    <img src="logo_uika.jpeg">
+    </div>
+
+    <h1>🎡 BK Fun Wheel</h1>
+    <p class="subtitle">Media Bimbingan dan Konseling Interaktif</p>
+
+    <div class="wheel-container">
+        <div class="pointer"></div>
+        <canvas id="wheelCanvas" width="400" height="400"></canvas>
+    </div>
+    
+
+    <button class="btn-spin" id="spinBtn" onclick="spinWheel()">PUTAR RODA!</button>
+
+    <div class="result-card" id="resultCard">
+        <div class="category-badge" id="categoryBadge">Kategori</div>
+        <div class="question-text" id="questionText">Pertanyaan akan muncul di sini...</div>
+    </div>
+    <audio id="spinSound" src="suaraputaran.mp3"></audio>
+    <audio id="winSound" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
+    
+  
+
+    <script>
+        // Data Pertanyaan Sesuai Request dengan pemecahan baris teks
+        const dataWheel = [
+            {
+                kategoriText: ["Mengenal", "Diri"],
+                namaLengkap: "Mengenal Diri",
+                warna: "#4facfe",
+                pertanyaan: [
+                    "Sebutkan 3 kelebihan dirimu!",
+                    "Hal apa yang paling kamu banggakan dari dirimu?",
+                    "Apa cita-citamu?",
+                    "Apa hal yang membuatmu percaya diri?",
+                    "Jika kamu bisa menggambarkan dirimu dengan warna, warna apa?",
+                    "Apa hobi yang paling membuatmu bahagia?",
+                    "Apa hal yang ingin kamu tingkatkan dari dirimu?",
+                    "Apa pencapaian kecil yang pernah membuatmu senang?"
+                ]
+            },
+            {
+                kategoriText: ["Emosi dan", "Perasaan"],
+                namaLengkap: "Emosi dan Perasaan",
+                warna: "#ff9a9e",
+                pertanyaan: [
+                    "Apa yang biasanya membuatmu sedih?",
+                    "Apa yang kamu lakukan saat marah?",
+                    "Pernah merasa overthinking? Karena apa?",
+                    "Hal apa yang membuatmu cemas?",
+                    "Bagaimana cara kamu menenangkan diri?",
+                    "Apa yang membuatmu merasa nyaman?",
+                    "Pernah merasa insecure? Tentang apa?",
+                    "Apa yang paling kamu butuhkan saat sedang sedih?"
+                ]
+            },
+            {
+                kategoriText: ["Pertemanan", "dan Sosial"],
+                namaLengkap: "Pertemanan dan Sosial",
+                warna: "#f6d365",
+                pertanyaan: [
+                    "Menurutmu teman yang baik itu seperti apa?",
+                    "Apa yang kamu lakukan jika bertengkar dengan teman?",
+                    "Apakah kamu pernah merasa dikucilkan?",
+                    "Bagaimana cara menghargai teman?",
+                    "Apa arti persahabatan bagimu?",
+                    "Siapa orang yang paling mendukungmu?",
+                    "Apa yang membuat pertemanan jadi toxic?",
+                    "Bagaimana cara meminta maaf yang baik?"
+                ]
+            },
+            {
+                kategoriText: ["Motivasi", "dan Harapan"],
+                namaLengkap: "Motivasi dan Harapan",
+                warna: "#43e97b",
+                pertanyaan: [
+                    "Apa impian terbesar kamu?",
+                    "Apa motivasi terbesar dalam hidupmu?",
+                    "Jika bisa memberi pesan untuk dirimu sendiri, apa pesannya?",
+                    "Apa hal yang ingin kamu capai tahun ini?",
+                    "Siapa orang yang menginspirasimu?",
+                    "Apa yang membuatmu semangat bangun pagi?",
+                    "Hal apa yang ingin kamu ubah mulai hari ini?",
+                    "Apa arti sukses menurutmu?"
+                ]
+            },
+            {
+                kategoriText: ["Tantangan", "Positif"],
+                namaLengkap: "Tantangan Positif",
+                warna: "#a18cd1",
+                pertanyaan: [
+                    "Sebutkan 1 kalimat motivasi untuk temanmu!",
+                    "Berikan pujian untuk diri sendiri!",
+                    "Sebutkan 3 hal yang kamu syukuri hari ini!",
+                    "Tersenyumlah pada teman di sebelahmu 😊",
+                    "Sebutkan 1 hal baik yang pernah kamu lakukan!",
+                    "Ucapkan afirmasi positif:(Contoh: “Aku berharga dan mampu berkembang.”)",
+                    "Ceritakan pengalaman lucu yang pernah kamu alami!",
+                    "Sebutkan 1 kebiasaan baik yang ingin kamu mulai!"
+                ]
+            }
+        ];
+
+        // Setup Canvas Roda
+        const canvas = document.getElementById("wheelCanvas");
+        const ctx = canvas.getContext("2d");
+        const numSlices = dataWheel.length;
+        const sliceAngle = (2 * Math.PI) / numSlices;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = canvas.width / 2;
+
+        // Menggambar Roda
+        function drawWheel() {
+            for (let i = 0; i < numSlices; i++) {
+                const startAngle = i * sliceAngle;
+                const endAngle = startAngle + sliceAngle;
+
+                // Gambar Potongan (Slice)
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.fillStyle = dataWheel[i].warna;
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "#fff";
+                ctx.stroke();
+
+                // Tambahkan Teks Kategori (Mendukung Multi-baris)
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(startAngle + sliceAngle / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 20px Poppins, sans-serif"; // Ukuran font disesuaikan
+                
+                ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+                ctx.shadowBlur = 4;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+
+                const lines = dataWheel[i].kategoriText;
+                const lineHeight = 20; // Jarak antar baris
+                // Menghitung posisi Y agar teks berada tepat di tengah-tengah potongan
+                const startY = -((lines.length - 1) * lineHeight) / 2;
+
+                for(let j = 0; j < lines.length; j++) {
+                    // Posisi X diatur ke (radius - 25) agar tidak menabrak garis luar roda
+                    ctx.fillText(lines[j], radius - 25, startY + (j * lineHeight) + 5); 
+                }
+                ctx.restore();
+            }
+            
+            // Gambar Lingkaran Tengah (As)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 30, 0, 2 * Math.PI);
+            ctx.fillStyle = "#fff";
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "#e74c3c";
+            ctx.stroke();
+        }
+
+        drawWheel();
+
+        // Variabel Putaran
+        let currentRotation = 0;
+        let isSpinning = false;
+function spinWheel() {
+            if (isSpinning) return;
+            isSpinning = true;
+
+            const spinBtn = document.getElementById("spinBtn");
+            const resultCard = document.getElementById("resultCard");
+            
+            // Memanggil elemen audio
+            const spinSound = document.getElementById("spinSound");
+            const winSound = document.getElementById("winSound");
+            
+            resultCard.classList.remove("show");
+            spinBtn.disabled = true;
+            spinBtn.innerText = "MEMUTAR...";
+
+            // --- MULAI MAINKAN SUARA RODA ---
+            spinSound.currentTime = 0; // Reset suara dari awal
+            spinSound.play();          // Mainkan suara
+
+            const spinDegrees = Math.floor(Math.random() * 360) + (360 * 5); 
+            currentRotation += spinDegrees;
+
+            canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+setTimeout(() => {
+                // Hentikan suara roda & mainkan suara hasil
+                spinSound.pause();
+                winSound.currentTime = 0;
+                winSound.play();
+
+                const degreesToRight = currentRotation % 360;
+                const winningDegree = (360 - degreesToRight) % 360; 
+                
+                const sliceDegrees = 360 / numSlices;
+                const winningIndex = Math.floor(winningDegree / sliceDegrees);
+
+                const pemenang = dataWheel[winningIndex];
+                const randomQuest = pemenang.pertanyaan[Math.floor(Math.random() * pemenang.pertanyaan.length)];
+
+                const badge = document.getElementById("categoryBadge");
+                badge.innerText = pemenang.namaLengkap;
+                badge.style.backgroundColor = pemenang.warna;
+                
+                document.getElementById("questionText").innerText = randomQuest;
+
+                // Memunculkan kartu hasil
+                resultCard.classList.add("show");
+
+                // --- KODE EFEK PETASAN CONFETTI BARU ---
+                var count = 200; // Jumlah kertas confetti
+                var defaults = {
+                    origin: { y: 0.7 } // Titik ledakan (0.7 berarti agak ke bawah tengah layar)
+                };
+
+                function fire(particleRatio, opts) {
+                    confetti(Object.assign({}, defaults, opts, {
+                        particleCount: Math.floor(count * particleRatio)
+                    }));
+                }
+
+                // Menembakkan beberapa ledakan sekaligus agar terlihat seperti kembang api/petasan
+                fire(0.25, { spread: 26, startVelocity: 55 });
+                fire(0.2, { spread: 60 });
+                fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+                fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+                fire(0.1, { spread: 120, startVelocity: 45 });
+                // ----------------------------------------
+
+                // Kembalikan status tombol
+                isSpinning = false;
+                spinBtn.disabled = false;
+                spinBtn.innerText = "PUTAR LAGI!";
+                
+            }, 4000); 
+        }
+    </script>
+</body>
+</html>
